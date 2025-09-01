@@ -1,0 +1,355 @@
+{
+  "name": "Bulbasaur",
+  "number": "001",
+  "types": [
+    "Grass",
+    "Poison"
+  ],
+  "other_names": {
+    "Japan": {
+      "0": "Fushigidane",
+      "1": "フシギダネ"
+    },
+    "French": "Bulbizarre",
+    "German": "Bisasam",
+    "Korean": "이상해씨"
+  },
+  "classification": "Seed Pokémon",
+  "height": {
+    "imperial": "2'04\"",
+    "metric": "0.7m"
+  },
+  "weight": {
+    "imperial": "15.2lbs",
+    "metric": "6.9kg"
+  },
+  "stats": {
+    "base_stats": {
+      "bst": "253",
+      "HP": "45",
+      "Attack": "49",
+      "Defense": "49",
+      "Special": "65",
+      "Speed": "45"
+    },
+    "max_stats": {
+      "lv_50": {
+        "HP": "105 - 151",
+        "Attack": "54 - 100",
+        "Defense": "54 - 100",
+        "Special": "70 - 116",
+        "Speed": "50 - 96"
+      },
+      "lv_100": {
+        "HP": "200 - 293",
+        "Attack": "103 - 196",
+        "Defense": "103 - 196",
+        "Special": "135 - 228",
+        "Speed": "95 - 188"
+      }
+    }
+  },
+  "capture_rate": "45",
+  "experience_growth": {
+    "points": "1,059,860",
+    "rate": "Medium Slow"
+  },
+  "effort_values": {
+    "HP": "45",
+    "Attack": "49",
+    "Defense": "49",
+    "Special": "65",
+    "Speed": "45"
+  },
+  "damage_taken": {
+    "Normal": "1",
+    "Fire": "2",
+    "Water": "0.5",
+    "Electric": "0.5",
+    "Grass": "0.25",
+    "Ice": "2",
+    "Fighting": "0.5",
+    "Poison": "1",
+    "Ground": "1",
+    "Flying": "2",
+    "Psychic": "2",
+    "Bug": "4",
+    "Rock": "1",
+    "Ghost": "1",
+    "Dragon": "1"
+  },
+  "locations": [
+    {
+      "game": "Red",
+      "place": "Starter Pokémon"
+    },
+    {
+      "game": "Green (Jp.)/Blue (Intl.)",
+      "place": "Starter Pokémon"
+    },
+    {
+      "game": "Blue (Jp.)",
+      "place": "Starter Pokémon"
+    },
+    {
+      "game": "Yellow",
+      "place": "Gift in Cerulean City"
+    }
+  ],
+  "evos": [
+    {
+      "level": "16",
+      "mon": "002"
+    },
+    {
+      "level": "32",
+      "mon": "003"
+    }
+  ],
+  "moves": {
+    "learnset": [
+      {
+        "level": "—",
+        "name": "Tackle",
+        "type": "Normal",
+        "power": "35",
+        "accuracy": "95",
+        "pp": "35",
+        "effect": "--",
+        "description": "A NORMAL-type attack. Many Pokémon know this attack right from the start."
+      },
+      {
+        "level": "—",
+        "name": "Growl",
+        "type": "Normal",
+        "power": "--",
+        "accuracy": "100",
+        "pp": "40",
+        "effect": "--",
+        "description": "A technique that lowers the target's ATTACK power. Can normally be used up to six times."
+      },
+      {
+        "level": "7",
+        "name": "Leech Seed",
+        "type": "Grass",
+        "power": "--",
+        "accuracy": "90",
+        "pp": "10",
+        "effect": "--",
+        "description": "Plants a seed on the target Pokémon. The seed slowly drains the target's HP for the attacker."
+      },
+      {
+        "level": "13",
+        "name": "Vine Whip",
+        "type": "Grass",
+        "power": "35",
+        "accuracy": "100",
+        "pp": "10",
+        "effect": "--",
+        "description": "A GRASS-type attack. The Pokémon uses its cruel whips to strike the opponent."
+      },
+      {
+        "level": "20",
+        "name": "Poison Powder",
+        "type": "Poison",
+        "power": "--",
+        "accuracy": "74.6",
+        "pp": "35",
+        "effect": "20",
+        "description": "A technique that poisons the target. If poisoned, the victim loses HP steadily."
+      },
+      {
+        "level": "27",
+        "name": "Razor Leaf",
+        "type": "Grass",
+        "power": "55",
+        "accuracy": "95",
+        "pp": "25",
+        "effect": "--",
+        "description": "A GRASS-type attack that sends sharp-edged leaves at the target. Likely to get a critical hit."
+      },
+      {
+        "level": "34",
+        "name": "Growth",
+        "type": "Normal",
+        "power": "--",
+        "accuracy": "100",
+        "pp": "40",
+        "effect": "--",
+        "description": "Raises SPECIAL to make special attacks stronger and enhance protection against special moves."
+      },
+      {
+        "level": "41",
+        "name": "Sleep Powder",
+        "type": "Grass",
+        "power": "--",
+        "accuracy": "75",
+        "pp": "15",
+        "effect": "--",
+        "description": "Induces sleep. A Pokémon will stay asleep for several turns if an item isn't used to wake it."
+      },
+      {
+        "level": "48",
+        "name": "Solar Beam",
+        "type": "Grass",
+        "power": "120",
+        "accuracy": "100",
+        "pp": "10",
+        "effect": "--",
+        "description": "The strongest GRASS-type attack. Energy is absorbed in the first turn, then fired the next turn."
+      }
+    ],
+    "tm_moves": [
+      {
+        "tm_number": "TM03",
+        "name": "Swords Dance",
+        "type": "Normal",
+        "power": "--",
+        "accuracy": "100",
+        "pp": "30",
+        "effect": "--",
+        "description": "A special move that greatly boosts the user's ATTACK power. Can normally be used up to three times."
+      },
+      {
+        "tm_number": "TM06",
+        "name": "Toxic",
+        "type": "Poison",
+        "power": "--",
+        "accuracy": "85",
+        "pp": "10",
+        "effect": "--",
+        "description": "A technique that badly poisons the target. The amount of damage from the poison increases every turn."
+      },
+      {
+        "tm_number": "TM08",
+        "name": "Body Slam",
+        "type": "Normal",
+        "power": "85",
+        "accuracy": "100",
+        "pp": "15",
+        "effect": "33",
+        "description": "A NORMAL-type attack. Has a one-in-three chance of paralyzing the target if it connects."
+      },
+      {
+        "tm_number": "TM09",
+        "name": "Take Down",
+        "type": "Normal",
+        "power": "90",
+        "accuracy": "85",
+        "pp": "20",
+        "effect": "--",
+        "description": "A charging attack. One quarter of the damage it inflicts comes back to hurt the attacker."
+      },
+      {
+        "tm_number": "TM10",
+        "name": "Double-Edge",
+        "type": "Normal",
+        "power": "100",
+        "accuracy": "100",
+        "pp": "15",
+        "effect": "--",
+        "description": "A charging tackle attack. One quarter of the damage it inflicts comes back to hurt the attacker."
+      },
+      {
+        "tm_number": "TM20",
+        "name": "Rage",
+        "type": "Normal",
+        "power": "20",
+        "accuracy": "100",
+        "pp": "20",
+        "effect": "--",
+        "description": "A non-stop attack move. The user's ATTACK power increases every time it sustains damage."
+      },
+      {
+        "tm_number": "TM21",
+        "name": "Mega Drain",
+        "type": "Grass",
+        "power": "40",
+        "accuracy": "100",
+        "pp": "10",
+        "effect": "--",
+        "description": "A GRASS-type attack. It adds half the HP it drained from the target to the attacker's HP."
+      },
+      {
+        "tm_number": "TM22",
+        "name": "Solar Beam",
+        "type": "Grass",
+        "power": "120",
+        "accuracy": "100",
+        "pp": "10",
+        "effect": "--",
+        "description": "The strongest GRASS-type attack. Energy is absorbed in the first turn, then fired the next turn."
+      },
+      {
+        "tm_number": "TM31",
+        "name": "Mimic",
+        "type": "Normal",
+        "power": "--",
+        "accuracy": "100",
+        "pp": "10",
+        "effect": "--",
+        "description": "A move for learning one of the opponent's moves, for use during that battle only."
+      },
+      {
+        "tm_number": "TM32",
+        "name": "Double Team",
+        "type": "Normal",
+        "power": "--",
+        "accuracy": "100",
+        "pp": "15",
+        "effect": "--",
+        "description": "Creates illusionary copies of the user. The copies disorient the enemy, reducing its accuracy."
+      },
+      {
+        "tm_number": "TM33",
+        "name": "Reflect",
+        "type": "Psychic",
+        "power": "--",
+        "accuracy": "100",
+        "pp": "20",
+        "effect": "--",
+        "description": "Reduces damage from physical attacks by about half. A special PSYCHIC-type technique."
+      },
+      {
+        "tm_number": "TM34",
+        "name": "Bide",
+        "type": "Normal",
+        "power": "--",
+        "accuracy": "100",
+        "pp": "10",
+        "effect": "--",
+        "description": "The user waits for several turns. At the end, it returns double the damage it received."
+      },
+      {
+        "tm_number": "TM44",
+        "name": "Rest",
+        "type": "Psychic",
+        "power": "--",
+        "accuracy": "100",
+        "pp": "10",
+        "effect": "--",
+        "description": "The user takes a nap to fully restore its HP and recover from any status abnormalities."
+      },
+      {
+        "tm_number": "TM50",
+        "name": "Substitute",
+        "type": "Normal",
+        "power": "--",
+        "accuracy": "100",
+        "pp": "10",
+        "effect": "--",
+        "description": "Uses 1/4 of the user's maximum HP to create a substitute that takes the opponent's attacks."
+      },
+      {
+        "tm_number": "HM01",
+        "name": "Cut",
+        "type": "Normal",
+        "power": "50",
+        "accuracy": "95",
+        "pp": "30",
+        "effect": "--",
+        "description": "A NORMAL-type attack. Also used for cutting small bushes to open new paths."
+      }
+    ]
+  }
+}

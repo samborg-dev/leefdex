@@ -1,0 +1,5 @@
+data/
+sprites/
+__pycache__/
+*.pyc
+
