@@ -143,103 +143,358 @@ def scrape_pokemon_page(url):
                 # This is the evolution table
                 rows = table.find_all('tr')
                 for row in rows:
-                    cells = row.find_all('td')
-                    if len(cells) >= 2:
-                        # Look for evolution data in the evochain table
-                        evochain_table = row.find('table', class_='evochain')
-                        if evochain_table:
-                            # Parse the evolution chain table
-                            evo_rows = evochain_table.find_all('tr')
+                    evochain_table = row.find('table', class_='evochain')
+                    if evochain_table:
+                        # Parse the evolution chain table
+                        evo_rows = evochain_table.find_all('tr')
+                        
+                        if len(evo_rows) >= 1:
+                            # Collect all Pokémon and their evolution methods
+                            pokemon_chain = []  # List of (pokemon_number, evolution_method, evolution_level)
                             
-                            # Simplified evolution parsing approach
-                            if len(evo_rows) >= 1:
-                                # Collect all Pokémon and evolution data from the table
-                                all_pokemon = []
-                                evolution_data = []
-                                
-                                # First, collect all Pokémon sprites from the main row
-                                main_row_cells = evo_rows[0].find_all('td')
-                                for i, cell in enumerate(main_row_cells):
-                                    sprites = cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
-                                    for sprite in sprites:
-                                        sprite_src = sprite.get('src', '')
-                                        mon_match = re.search(r'/(\d+)\.png$', sprite_src)
-                                        if mon_match:
-                                            mon_number = mon_match.group(1)
-                                            all_pokemon.append((i, mon_number))
+                            # First, collect all Pokémon sprites and evolution data from the main row
+                            main_row_cells = evo_rows[0].find_all('td')
+                            
+                            # Create a mapping of Pokémon to their evolution methods
+                            pokemon_evolution_map = {}
+                            
+                            # First pass: collect all Pokémon sprites and their positions
+                            for i, cell in enumerate(main_row_cells):
+                                sprites = cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                for sprite in sprites:
+                                    sprite_src = sprite.get('src', '')
+                                    mon_match = re.search(r'/(\d+)\.png$', sprite_src)
+                                    if mon_match:
+                                        mon_number = mon_match.group(1)
+                                        pokemon_evolution_map[mon_number] = {'position': i, 'method': 'level', 'level': '--'}
+                            
+                            # Also add Pokémon from orphaned cells to the evolution map
+                            orphaned_cells = evochain_table.find_all('td', class_='pkmn')
+                            for i, cell in enumerate(orphaned_cells):
+                                sprites = cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                for sprite in sprites:
+                                    sprite_src = sprite.get('src', '')
+                                    mon_match = re.search(r'/(\d+)\.png$', sprite_src)
+                                    if mon_match:
+                                        mon_number = mon_match.group(1)
+                                        if mon_number not in pokemon_evolution_map:
+                                            pokemon_evolution_map[mon_number] = {'position': -1, 'method': 'level', 'level': '--'}
+                            
+                            # Second pass: find evolution methods in cells with evolution icons
+                            for i, cell in enumerate(main_row_cells):
+                                evo_icons = cell.find_all('img', src=lambda x: x and 'evoicon/' in x and x.endswith('.png'))
+                                for icon in evo_icons:
+                                    src = icon.get('src', '')
+                                    method = 'level'
+                                    level = '--'
                                     
-                                    # Also collect evolution icons
-                                    evo_icons = cell.find_all('img', src=lambda x: x and 'evoicon/' in x and x.endswith('.png'))
-                                    for icon in evo_icons:
-                                        src = icon.get('src', '')
-                                        if 'thunderstone' in src:
-                                            evolution_data.append((i, 'thunderstone', '0'))
-                                        elif 'waterstone' in src:
-                                            evolution_data.append((i, 'waterstone', '0'))
-                                        elif 'firestone' in src:
-                                            evolution_data.append((i, 'firestone', '0'))
-                                        else:
-                                            level_match = re.search(r'/l(\d+)\.png$', src)
-                                            level = level_match.group(1) if level_match else "0"
-                                            evolution_data.append((i, 'level', level))
-                                
-                                # Also check orphaned cells for additional Pokémon
-                                orphaned_cells = evochain_table.find_all('td', class_='pkmn')
-                                for cell in orphaned_cells:
+                                    if 'thunderstone' in src or 'eeveethunderstone' in src:
+                                        method = 'thunderstone'
+                                        level = '--'
+                                    elif 'waterstone' in src or 'eeveewaterstone' in src:
+                                        method = 'waterstone'
+                                        level = '--'
+                                    elif 'firestone' in src or 'eeveefirestone' in src:
+                                        method = 'firestone'
+                                        level = '--'
+                                    elif 'leafstone' in src or 'eeveeleafstone' in src:
+                                        method = 'leafstone'
+                                        level = '--'
+                                    elif 'moonstone' in src or 'eeveemoonstone' in src:
+                                        method = 'moonstone'
+                                        level = '--'
+                                    elif 'trade' in src:
+                                        method = 'trade'
+                                        level = '--'
+                                    else:
+                                        level_match = re.search(r'/l(\d+)\.png$', src)
+                                        if level_match:
+                                            method = 'level'
+                                            level = level_match.group(1)
+                                    
+                                    # Find the Pokémon this evolution method applies to
+                                    # The evolution icon in cell i applies to the evolution FROM cell i-1 TO cell i+1
+                                    if i > 0 and i + 1 < len(main_row_cells):
+                                        # Get the Pokémon that evolves (cell i-1)
+                                        prev_cell = main_row_cells[i - 1]
+                                        prev_sprites = prev_cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                        
+                                        # Get the Pokémon it evolves into (cell i+1)
+                                        next_cell = main_row_cells[i + 1]
+                                        next_sprites = next_cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                        
+                                        for prev_sprite in prev_sprites:
+                                            prev_sprite_src = prev_sprite.get('src', '')
+                                            prev_mon_match = re.search(r'/(\d+)\.png$', prev_sprite_src)
+                                            if prev_mon_match:
+                                                prev_mon_number = prev_mon_match.group(1)
+                                                
+                                                for next_sprite in next_sprites:
+                                                    next_sprite_src = next_sprite.get('src', '')
+                                                    next_mon_match = re.search(r'/(\d+)\.png$', next_sprite_src)
+                                                    if next_mon_match:
+                                                        next_mon_number = next_mon_match.group(1)
+                                                        
+                                                        # Store evolution data for the Pokémon it evolves into
+                                                        # The evolution icon in cell i applies to the evolution TO the Pokémon in cell i+1
+                                                        if next_mon_number in pokemon_evolution_map:
+                                                            pokemon_evolution_map[next_mon_number]['method'] = method
+                                                            pokemon_evolution_map[next_mon_number]['level'] = level
+                            
+                            # Special handling for Eevee family - check additional rows for evolution icons
+                            if len(evo_rows) > 1:
+                                # Check if this is Eevee or its evolutions
+                                is_eevee_family = False
+                                for cell in main_row_cells:
                                     sprites = cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
                                     for sprite in sprites:
                                         sprite_src = sprite.get('src', '')
                                         mon_match = re.search(r'/(\d+)\.png$', sprite_src)
-                                        if mon_match:
-                                            mon_number = mon_match.group(1)
-                                            # Add to the end of the list
-                                            all_pokemon.append((len(all_pokemon), mon_number))
-                                
-                                # Now determine relationships
-                                current_index = None
-                                for i, (pos, mon_number) in enumerate(all_pokemon):
-                                    if mon_number == current_pokemon_number:
-                                        current_index = i
+                                        if mon_match and mon_match.group(1) in ['133', '134', '135', '136']:
+                                            is_eevee_family = True
+                                            break
+                                    if is_eevee_family:
                                         break
                                 
-                                if current_index is not None:
-                                    # Find previous evolutions (Pokémon with lower numbers that appear before current)
-                                    for i, (pos, mon_number) in enumerate(all_pokemon):
-                                        if (mon_number != current_pokemon_number and 
-                                            int(mon_number) < int(current_pokemon_number) and
-                                            i < current_index):
-                                            pevo_key = f"pevo-{mon_number}"
-                                            if pevo_key not in seen_pevos:
-                                                seen_pevos.add(pevo_key)
-                                                pevos.append({
-                                                    "level": "0",
-                                                    "mon": mon_number
-                                                })
-                                    
-                                    # Find next evolutions (Pokémon with higher numbers that appear after current)
-                                    for i, (pos, mon_number) in enumerate(all_pokemon):
-                                        if (mon_number != current_pokemon_number and 
-                                            int(mon_number) > int(current_pokemon_number) and
-                                            i > current_index):
-                                            # Find the corresponding evolution method
-                                            method = 'level'
-                                            level = '0'
+                                if is_eevee_family:
+                                    # For Eevee family, check additional rows for evolution icons
+                                    # and map them to orphaned cells
+                                    for row_idx in range(1, len(evo_rows)):
+                                        additional_row_cells = evo_rows[row_idx].find_all('td')
+                                        for i, cell in enumerate(additional_row_cells):
+                                            evo_icons = cell.find_all('img', src=lambda x: x and 'evoicon/' in x and x.endswith('.png'))
+                                            for icon in evo_icons:
+                                                src = icon.get('src', '')
+                                                method = 'level'
+                                                level = '--'
+                                                
+                                                if 'thunderstone' in src or 'eeveethunderstone' in src:
+                                                    method = 'thunderstone'
+                                                    level = '--'
+                                                elif 'waterstone' in src or 'eeveewaterstone' in src:
+                                                    method = 'waterstone'
+                                                    level = '--'
+                                                elif 'firestone' in src or 'eeveefirestone' in src:
+                                                    method = 'firestone'
+                                                    level = '--'
+                                                elif 'leafstone' in src or 'eeveeleafstone' in src:
+                                                    method = 'leafstone'
+                                                    level = '--'
+                                                elif 'moonstone' in src or 'eeveemoonstone' in src:
+                                                    method = 'moonstone'
+                                                    level = '--'
+                                                elif 'trade' in src:
+                                                    method = 'trade'
+                                                    level = '--'
+                                                
+                                                # For Eevee, map evolution icons to orphaned cells
+                                                # The evolution icons are in row 2, and the evolved Pokémon are in orphaned cells
+                                                # Map by position: Cell 1 -> Orphaned Cell 2, Cell 2 -> Orphaned Cell 3, Cell 3 -> Orphaned Cell 4
+                                                orphaned_cells = evochain_table.find_all('td', class_='pkmn')
+                                                if i + 1 < len(orphaned_cells):  # i+1 because orphaned cell 0 is Eevee itself
+                                                    target_orphaned_cell = orphaned_cells[i + 1]
+                                                    target_sprites = target_orphaned_cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                                    for sprite in target_sprites:
+                                                        sprite_src = sprite.get('src', '')
+                                                        mon_match = re.search(r'/(\d+)\.png$', sprite_src)
+                                                        if mon_match:
+                                                            mon_number = mon_match.group(1)
+                                                            if mon_number in pokemon_evolution_map:
+                                                                pokemon_evolution_map[mon_number]['method'] = method
+                                                                pokemon_evolution_map[mon_number]['level'] = level
+                            
+                            # Add all Pokémon to the chain
+                            for mon_number, data in pokemon_evolution_map.items():
+                                pokemon_chain.append((mon_number, data['method'], data['level']))
+                            
+                            # Also check orphaned cells for additional Pokémon
+                            orphaned_cells = evochain_table.find_all('td', class_='pkmn')
+                            for cell in orphaned_cells:
+                                sprites = cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                for sprite in sprites:
+                                    sprite_src = sprite.get('src', '')
+                                    mon_match = re.search(r'/(\d+)\.png$', sprite_src)
+                                    if mon_match:
+                                        mon_number = mon_match.group(1)
+                                        
+                                        # Look for evolution method in this orphaned cell
+                                        method = 'level'
+                                        level = '--'
+                                        
+                                        evo_icons = cell.find_all('img', src=lambda x: x and 'evoicon/' in x and x.endswith('.png'))
+                                        for icon in evo_icons:
+                                            src = icon.get('src', '')
+                                            if 'thunderstone' in src:
+                                                method = 'thunderstone'
+                                                level = '--'
+                                            elif 'waterstone' in src:
+                                                method = 'waterstone'
+                                                level = '--'
+                                            elif 'firestone' in src:
+                                                method = 'firestone'
+                                                level = '--'
+                                            elif 'leafstone' in src:
+                                                method = 'leafstone'
+                                                level = '--'
+                                            elif 'moonstone' in src:
+                                                method = 'moonstone'
+                                                level = '--'
+                                            elif 'trade' in src:
+                                                method = 'trade'
+                                                level = '--'
+                                            else:
+                                                level_match = re.search(r'/l(\d+)\.png$', src)
+                                                if level_match:
+                                                    method = 'level'
+                                                    level = level_match.group(1)
+                                        
+                                        pokemon_chain.append((mon_number, method, level))
+                            
+                            # Now determine relationships
+                            current_index = None
+                            for i, (mon_number, method, level) in enumerate(pokemon_chain):
+                                if mon_number == current_pokemon_number:
+                                    current_index = i
+                                    break
+                            
+                            if current_index is not None:
+                                # Find previous evolutions (Pokémon that appear before current in the chain)
+                                # The pevos should show what evolves INTO the current Pokémon
+                                for i, (mon_number, method, level) in enumerate(pokemon_chain):
+                                    if (mon_number != current_pokemon_number and 
+                                        int(mon_number) < int(current_pokemon_number) and
+                                        i < current_index):
+                                        pevo_key = f"pevo-{mon_number}"
+                                        if pevo_key not in seen_pevos:
+                                            seen_pevos.add(pevo_key)
                                             
-                                            # Look for evolution data that corresponds to this Pokémon
-                                            for evo_pos, evo_method, evo_level in evolution_data:
-                                                if evo_pos >= current_index:  # Evolution method after current Pokémon
-                                                    method = evo_method
-                                                    level = evo_level
+                                            # For pevos, we need to find the evolution that leads TO the current Pokémon
+                                            # Use the stored evolution data from pokemon_evolution_map
+                                            pevo_method = method
+                                            pevo_level = level
+                                            
+                                            # The pevos should show the level at which the previous Pokémon evolves INTO the current one
+                                            # We need to find the evolution data that shows the previous Pokémon evolving into the current one
+                                            # Look for evolution data in the main row that shows the previous Pokémon evolving into current
+                                            found_pevo = False
+                                            for j, cell in enumerate(main_row_cells):
+                                                # Look for the previous Pokémon in this cell
+                                                prev_sprites = cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                                for sprite in prev_sprites:
+                                                    sprite_src = sprite.get('src', '')
+                                                    mon_match = re.search(r'/(\d+)\.png$', sprite_src)
+                                                    if mon_match and mon_match.group(1) == mon_number:
+                                                        # Found the previous Pokémon, check if there's an evolution icon after it
+                                                        if j + 2 < len(main_row_cells):
+                                                            evo_cell = main_row_cells[j + 1]
+                                                            next_cell = main_row_cells[j + 2]
+                                                            
+                                                            # Check for evolution icon
+                                                            evo_icons = evo_cell.find_all('img', src=lambda x: x and 'evoicon/' in x and x.endswith('.png'))
+                                                            if evo_icons:
+                                                                # Check if the next cell has the current Pokémon
+                                                                next_sprites = next_cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                                                for next_sprite in next_sprites:
+                                                                    next_sprite_src = next_sprite.get('src', '')
+                                                                    next_mon_match = re.search(r'/(\d+)\.png$', next_sprite_src)
+                                                                    if next_mon_match and next_mon_match.group(1) == current_pokemon_number:
+                                                                        # This is the evolution that leads to current Pokémon
+                                                                        for icon in evo_icons:
+                                                                            icon_src = icon.get('src', '')
+                                                                            if 'thunderstone' in icon_src:
+                                                                                pevo_method = 'thunderstone'
+                                                                                pevo_level = '--'
+                                                                            elif 'waterstone' in icon_src:
+                                                                                pevo_method = 'waterstone'
+                                                                                pevo_level = '--'
+                                                                            elif 'firestone' in icon_src:
+                                                                                pevo_method = 'firestone'
+                                                                                pevo_level = '--'
+                                                                            elif 'leafstone' in icon_src:
+                                                                                pevo_method = 'leafstone'
+                                                                                pevo_level = '--'
+                                                                            elif 'moonstone' in icon_src:
+                                                                                pevo_method = 'moonstone'
+                                                                                pevo_level = '--'
+                                                                            elif 'trade' in icon_src:
+                                                                                pevo_method = 'trade'
+                                                                                pevo_level = '--'
+                                                                            else:
+                                                                                level_match = re.search(r'/l(\d+)\.png$', icon_src)
+                                                                                if level_match:
+                                                                                    pevo_method = 'level'
+                                                                                    pevo_level = level_match.group(1)
+                                                                        found_pevo = True
+                                                                        break
+                                                                if found_pevo:
+                                                                    break
+                                                            break
+                                                        break
+                                                if found_pevo:
                                                     break
                                             
-                                            evo_key = f"evo-{method}-{level}-{mon_number}"
-                                            if evo_key not in seen_evos:
-                                                seen_evos.add(evo_key)
-                                                evos.append({
-                                                    "level": level,
-                                                    "mon": mon_number,
-                                                    "method": method
-                                                })
+                                            # If we didn't find a direct evolution, look for indirect evolutions
+                                            # This handles cases like Venusaur where Bulbasaur doesn't directly evolve into it
+                                            if not found_pevo:
+                                                # Look for the previous Pokémon in the evolution chain and find its evolution data
+                                                for j, cell in enumerate(main_row_cells):
+                                                    prev_sprites = cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                                    for sprite in prev_sprites:
+                                                        sprite_src = sprite.get('src', '')
+                                                        mon_match = re.search(r'/(\d+)\.png$', sprite_src)
+                                                        if mon_match and mon_match.group(1) == mon_number:
+                                                            # Found the previous Pokémon, look for its evolution data
+                                                            if j + 2 < len(main_row_cells):
+                                                                evo_cell = main_row_cells[j + 1]
+                                                                evo_icons = evo_cell.find_all('img', src=lambda x: x and 'evoicon/' in x and x.endswith('.png'))
+                                                                if evo_icons:
+                                                                    for icon in evo_icons:
+                                                                        icon_src = icon.get('src', '')
+                                                                        if 'thunderstone' in icon_src:
+                                                                            pevo_method = 'thunderstone'
+                                                                            pevo_level = '--'
+                                                                        elif 'waterstone' in icon_src:
+                                                                            pevo_method = 'waterstone'
+                                                                            pevo_level = '--'
+                                                                        elif 'firestone' in icon_src:
+                                                                            pevo_method = 'firestone'
+                                                                            pevo_level = '--'
+                                                                        elif 'leafstone' in icon_src:
+                                                                            pevo_method = 'leafstone'
+                                                                            pevo_level = '--'
+                                                                        elif 'moonstone' in icon_src:
+                                                                            pevo_method = 'moonstone'
+                                                                            pevo_level = '--'
+                                                                        elif 'trade' in icon_src:
+                                                                            pevo_method = 'trade'
+                                                                            pevo_level = '--'
+                                                                        else:
+                                                                            level_match = re.search(r'/l(\d+)\.png$', icon_src)
+                                                                            if level_match:
+                                                                                pevo_method = 'level'
+                                                                                pevo_level = level_match.group(1)
+                                                                    break
+                                                            break
+                                            
+                                            pevos.append({
+                                                "level": pevo_level,
+                                                "mon": mon_number,
+                                                "method": pevo_method
+                                            })
+                                
+                                # Find next evolutions (Pokémon that appear after current in the chain)
+                                for i, (mon_number, method, level) in enumerate(pokemon_chain):
+                                    if (mon_number != current_pokemon_number and 
+                                        int(mon_number) > int(current_pokemon_number) and
+                                        i > current_index):
+                                        evo_key = f"evo-{mon_number}"
+                                        if evo_key not in seen_evos:
+                                            seen_evos.add(evo_key)
+                                            evos.append({
+                                                "level": level,
+                                                "mon": mon_number,
+                                                "method": method
+                                            })
                 break
         
         pokemon_data['pevos'] = pevos
