@@ -128,6 +128,123 @@ def scrape_pokemon_page(url):
                             types.append(type_name)
         pokemon_data['types'] = types
         
+        # Get evolutionary chain - handle both previous and next evolutions
+        pevos = []  # Previous evolutions (what evolves into this Pokémon)
+        evos = []   # Next evolutions (what this Pokémon evolves into)
+        seen_pevos = set()
+        seen_evos = set()
+        
+        # Get the current Pokémon number for comparison
+        current_pokemon_number = pokemon_data.get('number', '001')
+        
+        for table in tables:
+            header = table.find('td', class_='fooevo')
+            if header and 'Evolutionary Chain' in header.get_text():
+                # This is the evolution table
+                rows = table.find_all('tr')
+                for row in rows:
+                    cells = row.find_all('td')
+                    if len(cells) >= 2:
+                        # Look for evolution data in the evochain table
+                        evochain_table = row.find('table', class_='evochain')
+                        if evochain_table:
+                            # Parse the evolution chain table
+                            evo_rows = evochain_table.find_all('tr')
+                            
+                            # Simplified evolution parsing approach
+                            if len(evo_rows) >= 1:
+                                # Collect all Pokémon and evolution data from the table
+                                all_pokemon = []
+                                evolution_data = []
+                                
+                                # First, collect all Pokémon sprites from the main row
+                                main_row_cells = evo_rows[0].find_all('td')
+                                for i, cell in enumerate(main_row_cells):
+                                    sprites = cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                    for sprite in sprites:
+                                        sprite_src = sprite.get('src', '')
+                                        mon_match = re.search(r'/(\d+)\.png$', sprite_src)
+                                        if mon_match:
+                                            mon_number = mon_match.group(1)
+                                            all_pokemon.append((i, mon_number))
+                                    
+                                    # Also collect evolution icons
+                                    evo_icons = cell.find_all('img', src=lambda x: x and 'evoicon/' in x and x.endswith('.png'))
+                                    for icon in evo_icons:
+                                        src = icon.get('src', '')
+                                        if 'thunderstone' in src:
+                                            evolution_data.append((i, 'thunderstone', '0'))
+                                        elif 'waterstone' in src:
+                                            evolution_data.append((i, 'waterstone', '0'))
+                                        elif 'firestone' in src:
+                                            evolution_data.append((i, 'firestone', '0'))
+                                        else:
+                                            level_match = re.search(r'/l(\d+)\.png$', src)
+                                            level = level_match.group(1) if level_match else "0"
+                                            evolution_data.append((i, 'level', level))
+                                
+                                # Also check orphaned cells for additional Pokémon
+                                orphaned_cells = evochain_table.find_all('td', class_='pkmn')
+                                for cell in orphaned_cells:
+                                    sprites = cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
+                                    for sprite in sprites:
+                                        sprite_src = sprite.get('src', '')
+                                        mon_match = re.search(r'/(\d+)\.png$', sprite_src)
+                                        if mon_match:
+                                            mon_number = mon_match.group(1)
+                                            # Add to the end of the list
+                                            all_pokemon.append((len(all_pokemon), mon_number))
+                                
+                                # Now determine relationships
+                                current_index = None
+                                for i, (pos, mon_number) in enumerate(all_pokemon):
+                                    if mon_number == current_pokemon_number:
+                                        current_index = i
+                                        break
+                                
+                                if current_index is not None:
+                                    # Find previous evolutions (Pokémon with lower numbers that appear before current)
+                                    for i, (pos, mon_number) in enumerate(all_pokemon):
+                                        if (mon_number != current_pokemon_number and 
+                                            int(mon_number) < int(current_pokemon_number) and
+                                            i < current_index):
+                                            pevo_key = f"pevo-{mon_number}"
+                                            if pevo_key not in seen_pevos:
+                                                seen_pevos.add(pevo_key)
+                                                pevos.append({
+                                                    "level": "0",
+                                                    "mon": mon_number
+                                                })
+                                    
+                                    # Find next evolutions (Pokémon with higher numbers that appear after current)
+                                    for i, (pos, mon_number) in enumerate(all_pokemon):
+                                        if (mon_number != current_pokemon_number and 
+                                            int(mon_number) > int(current_pokemon_number) and
+                                            i > current_index):
+                                            # Find the corresponding evolution method
+                                            method = 'level'
+                                            level = '0'
+                                            
+                                            # Look for evolution data that corresponds to this Pokémon
+                                            for evo_pos, evo_method, evo_level in evolution_data:
+                                                if evo_pos >= current_index:  # Evolution method after current Pokémon
+                                                    method = evo_method
+                                                    level = evo_level
+                                                    break
+                                            
+                                            evo_key = f"evo-{method}-{level}-{mon_number}"
+                                            if evo_key not in seen_evos:
+                                                seen_evos.add(evo_key)
+                                                evos.append({
+                                                    "level": level,
+                                                    "mon": mon_number,
+                                                    "method": method
+                                                })
+                break
+        
+        pokemon_data['pevos'] = pevos
+        pokemon_data['evos'] = evos
+        
         # Get other names in different languages
         other_names = {}
         other_name_cells = soup.find_all('td', class_='fooinfo')
@@ -428,59 +545,6 @@ def scrape_pokemon_page(url):
         
         pokemon_data['locations'] = locations
         
-        # Get evolutionary chain
-        evos = []
-        seen_evos = set()  # Track unique evolutions to avoid duplicates
-        for table in tables:
-            header = table.find('td', class_='fooevo')
-            if header and 'Evolutionary Chain' in header.get_text():
-                # This is the evolution table
-                rows = table.find_all('tr')
-                for row in rows:
-                    cells = row.find_all('td')
-                    if len(cells) >= 2:
-                        # Look for evolution data
-                        for i, cell in enumerate(cells):
-                            # Check for evolution icons (level requirements)
-                            evo_icons = cell.find_all('img', src=lambda x: x and 'evoicon/l' in x and x.endswith('.png'))
-                            if evo_icons:
-                                for icon in evo_icons:
-                                    src = icon.get('src', '')
-                                    # Extract level from path like /pokedex-xy/evoicon/l16.png
-                                    level_match = re.search(r'/l(\d+)\.png$', src)
-                                    if level_match:
-                                        level = level_match.group(1)
-                                        
-                                        # Look for the next Pokémon in the evolution chain
-                                        # The evolution icons are usually followed by Pokémon sprites
-                                        next_mon_cell = None
-                                        if i + 1 < len(cells):
-                                            next_mon_cell = cells[i + 1]
-                                        elif i + 1 < len(cells) - 1:
-                                            next_mon_cell = cells[i + 2]
-                                        
-                                        if next_mon_cell:
-                                            # Look for Pokémon sprite images
-                                            mon_sprites = next_mon_cell.find_all('img', src=lambda x: x and '/pokearth/sprites/' in x and x.endswith('.png'))
-                                            if mon_sprites:
-                                                for sprite in mon_sprites:
-                                                    sprite_src = sprite.get('src', '')
-                                                    # Extract Pokémon number from path like /pokearth/sprites/yellow/002.png
-                                                    mon_match = re.search(r'/(\d+)\.png$', sprite_src)
-                                                    if mon_match:
-                                                        mon_number = mon_match.group(1)
-                                                        # Only add if it's not the current Pokémon (001) and we haven't seen this evolution
-                                                        if mon_number != "001":
-                                                            evo_key = f"{level}-{mon_number}"
-                                                            if evo_key not in seen_evos:
-                                                                seen_evos.add(evo_key)
-                                                                evos.append({
-                                                                    "level": level,
-                                                                    "mon": mon_number
-                                                                })
-                break
-        
-        pokemon_data['evos'] = evos
         
         # Get moves - separate into learnset and TM moves with detailed information
         learnset_moves = []
